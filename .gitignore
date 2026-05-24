@@ -1,0 +1,7 @@
+__pycache__/
+*.parquet
+data/temp_year_*.parquet
+trades.csv
+equity.csv
+results_summary.csv
+results_yearly_*.csv
