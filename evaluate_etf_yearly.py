@@ -46,7 +46,12 @@ def main():
             strategy=strategy,
             initial_capital=INITIAL_CAPITAL,
             max_positions=1,
-            summary_file=f'results_yearly_{year}.csv'
+            summary_file=f'results_yearly_{year}.csv',
+            commission_pct=0.001,
+            tax_rates={
+                "NIFTYBEES.NS": 0.20, # 20% STCG
+                "GOLDBEES.NS": 0.30   # 30% Gold Tax
+            }
         )
         
         # Monkey patch engine to only record trades/equity curve WITHIN the year

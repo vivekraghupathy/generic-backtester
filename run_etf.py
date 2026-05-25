@@ -20,7 +20,12 @@ def main():
         data_file=DATA_FILE,
         strategy=strategy,
         initial_capital=INITIAL_CAPITAL,
-        max_positions=MAX_POSITIONS
+        max_positions=MAX_POSITIONS,
+        commission_pct=0.001, # 0.1% switching cost
+        tax_rates={
+            "NIFTYBEES.NS": 0.20, # 20% STCG for equity
+            "GOLDBEES.NS": 0.30   # 30% tax for gold
+        }
     )
 
     # Filter data for specific period

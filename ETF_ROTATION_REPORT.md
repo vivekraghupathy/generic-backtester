@@ -1,83 +1,74 @@
 # ETF Rotation Strategy Report: Nifty vs. Gold
-**Version:** 1.0 (May 2026)  
+**Version:** 1.1 (May 2026)  
 **Assets:** NIFTYBEES.NS (Equity), GOLDBEES.NS (Gold)
 
 ---
 
 ## 1. Executive Summary
-After backtesting multiple quantitative rotation models over a 10-year period (2016–2026), the **Dual Momentum (30-Day)** approach has been identified as the optimal strategy. It successfully combines the aggressive growth of equity momentum with the safety of gold during bear markets, delivering a compounded 10-year return of **+3,296.18%**.
+After backtesting multiple quantitative rotation models over a 10-year period (2016–2026), the **Dual Momentum (30-Day)** approach remains the optimal strategy. This version of the report incorporates **real-world frictions**, including a 0.1% switching cost and applicable taxes (20% STCG for Equity, 30% for Gold). 
+
+Even after accounting for these costs, the strategy delivered a net compounded 10-year return of **+944.70%**, representing a **25.26% CAGR**.
 
 ---
 
-## 2. Strategy Comparison (10-Year Results)
+## 2. Real-World Performance Summary (10-Year)
 
-| Strategy | Compounded Return | Trades | Avg. Yearly Return | Risk Profile |
-| :--- | :--- | :--- | :--- | :--- |
-| **Dual Momentum (30D)** | **+3,296.18%** | 144 | **42.2%** | **Medium (Defensive)** |
-| **Relative Momentum (30D)** | +2,250.89% | 116 | 38.5% | Medium (Aggressive) |
-| **Ratio-Based SMA** | +1,619.16% | 70 | 33.0% | Low (Steady) |
-| **50-Day SMA (1% Buffer)** | +1,253.93% | 57 | 30.1% | Low (Conservative) |
-
----
-
-## 3. The Core Models
-
-### A. Dual Momentum (The Winner)
-*   **Philosophy:** "Buy strength, but only if it's profitable."
-*   **Rule 1 (Absolute):** Is Nifty actually going up? (Price today > Price 30 days ago).
-*   **Rule 2 (Relative):** Is Nifty beating Gold? (Nifty 30-day % return > Gold 30-day % return).
-*   **Execution:** Hold NIFTYBEES only if **both** rules are met. Otherwise, hold GOLDBEES.
-
-### B. Relative Momentum (The Challenger)
-*   **Philosophy:** "Always be in the strongest asset."
-*   **Logic:** Compare the 30-day return of Nifty vs. Gold.
-*   **Execution:** Hold the asset with the higher return. No absolute filter.
+| Metric | Gross Performance | **Net Performance (After Tax & Costs)** |
+| :--- | :--- | :--- |
+| **Total Return (10Y)** | +3,296.18% | **+944.70%** |
+| **CAGR** | 42.20% | **25.26%** |
+| **Max Drawdown** | -24.46% | **-24.46%** |
+| **Final Equity (from 1M)** | ₹3.39 Cr | **₹1.04 Cr** |
 
 ---
 
-## 4. Step-by-Step Action Plan (Manual Execution)
+## 3. Taxation & Cost Management
+The strategy assumes a high-friction environment to ensure conservative and realistic projections:
+*   **Taxation:** Tax is deducted from every profitable trade upon exit. 
+    *   **NIFTYBEES.NS:** 20% Short-Term Capital Gains (STCG).
+    *   **GOLDBEES.NS:** 30% (Marginal tax rate for Gold/Debt instruments).
+    *   *Note: Taxes are not applied to loss-making trades.*
+*   **Switching Costs:** A 0.1% commission/slippage is applied to every Buy and Sell transaction to account for brokerage and bid-ask spreads.
 
-### Step 1: Selection (Monthly or Weekly)
-*   Choose a regular check-in day (e.g., Every Monday morning or the 1st of every month).
-*   **Asset Universe:** NIFTYBEES.NS (Equity) and GOLDBEES.NS (Gold).
+---
 
-### Step 2: The Momentum Scan
-Calculate the **30-Day Rate of Change (ROC)** for both assets.  
-*Calculation:* `(Current Price / Price 30 days ago) - 1`
+## 4. Lookback Period Optimization
+We compared the standard 30-day momentum lookback with a slower 45-day period to test if reduced trading frequency (and thus lower tax/commission leakage) improved results.
 
-*   **Metric A:** Nifty 30D Return
-*   **Metric B:** Gold 30D Return
+| Lookback Period | 10Y Net Return | 10Y Net CAGR | Win Rate |
+| :--- | :--- | :--- | :--- |
+| **30-Day (Standard)** | **+944.70%** | **25.26%** | **~65.5%** |
+| **45-Day (Slower)** | +630.75% | 21.05% | ~63.0% |
 
-### Step 3: Decision Logic (Dual Momentum)
-Follow these three simple conditions to determine your position:
+**Findings:** While the 45-day period reduced trade frequency by ~30%, the slower signal was less effective at capturing rapid market shifts. The 30-day period is significantly more "profit-efficient," with the extra gains far outweighing the additional tax burden.
 
-1.  **Is Nifty 30D Return > 0?**
-2.  **Is Nifty 30D Return > Gold 30D Return?**
+---
+
+## 5. Decision Logic (Dual Momentum)
+Follow these three simple conditions (checked every Monday or on a monthly basis):
+
+1.  **Is Nifty 30D Return > 0?** (Absolute Momentum)
+2.  **Is Nifty 30D Return > Gold 30D Return?** (Relative Momentum)
 
 *   **ACTION:** If **BOTH** are **YES** → Buy/Hold **NIFTYBEES**.
 *   **ACTION:** If **ANY** is **NO** → Buy/Hold **GOLDBEES**.
 
-*Note: Use a small 0.5% "buffer" for the comparison (Rule 2) to avoid switching when the returns are nearly identical.*
-
-### Step 4: Execution
-*   **Allocation:** 100% of the designated capital is moved to the target asset.
-*   **Timing:** Execute at the Market Open of the day following your scan.
-*   **Cost Management:** Only switch when the signal definitively changes to avoid excessive brokerage.
+*Note: A 0.5% "buffer" is used for the comparison to prevent unnecessary whipsaws when returns are identical.*
 
 ---
 
-## 5. Risk Management & Maintenance
-1.  **No Stop Losses:** In this specific rotation model, the "Switch" *is* the stop loss. Moving to Gold protects your capital during equity drawdowns.
-2.  **Discipline:** The biggest risk is failing to switch back to Nifty during a fast recovery or failing to exit Nifty during a slow grind down. Follow the 30-day signal without emotion.
-3.  **Whipsaws:** Expect 10-14 switches per year. Some will be "breakeven" trades. These are the insurance premiums you pay to be in Nifty for the big 50%+ bull runs.
+## 6. Risk Management & Maintenance
+1.  **No Stop Losses:** The rotation signal acts as the primary risk management tool. Moving to Gold protects capital during equity bear markets.
+2.  **Tax Efficiency:** By staying in an asset until a clear signal change, we defer taxation as long as possible. However, we prioritize momentum over tax-saving to ensure we are always in the strongest asset.
+3.  **Whipsaws:** Expect 10-14 switches per year. These small losses/breakeven trades are the "insurance premiums" for catching major 50%+ moves in Nifty while avoiding 20%+ drawdowns.
 
 ---
 
-## 6. Implementation Checklist
+## 7. Implementation Checklist
 - [ ] Create a Watchlist with `NIFTYBEES.NS` and `GOLDBEES.NS`.
-- [ ] Add the `ROC(30)` indicator to your charting tool.
-- [ ] Set a calendar alert for your chosen review day.
-- [ ] Maintain 100% allocation in the winning asset at all times.
+- [ ] Set `ROC(30)` indicator.
+- [ ] Set a recurring calendar alert for the review day.
+- [ ] Maintain 100% allocation in the winning asset as per the signal.
 
 ---
-**Report generated by Gemini CLI Backtester Engine.**
+**Report updated by Gemini CLI Backtester Engine - May 2026.**

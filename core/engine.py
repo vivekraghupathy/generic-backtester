@@ -7,13 +7,15 @@ from datetime import datetime
 from .strategy import BaseStrategy
 
 class BacktestEngine:
-    def __init__(self, data_file, strategy: BaseStrategy, initial_capital=1000000, max_positions=10, debug_tickers=None, summary_file='results_summary.csv'):
+    def __init__(self, data_file, strategy: BaseStrategy, initial_capital=1000000, max_positions=10, debug_tickers=None, summary_file='results_summary.csv', commission_pct=0.0, tax_rates=None):
         self.data_file = data_file
         self.strategy = strategy
         self.initial_capital = initial_capital
         self.max_positions = max_positions
         self.debug_tickers = debug_tickers
         self.summary_file = summary_file
+        self.commission_pct = commission_pct
+        self.tax_rates = tax_rates if tax_rates is not None else {}
 
     def load_data(self):
         start_time = time.time()
@@ -71,8 +73,22 @@ class BacktestEngine:
                 exit_triggered, exit_price, reason = self.strategy.check_exit(row, pos)
                 
                 if exit_triggered:
-                    proceeds = pos['shares'] * exit_price
-                    cash += proceeds
+                    gross_proceeds = pos['shares'] * exit_price
+                    exit_cost = gross_proceeds * self.commission_pct
+                    
+                    # Gain calculation for tax
+                    buy_value = (pos['shares'] * pos['entry_price']) + pos['entry_cost']
+                    sell_value = gross_proceeds - exit_cost
+                    net_gain = sell_value - buy_value
+                    
+                    tax = 0
+                    if net_gain > 0:
+                        tax_rate = self.tax_rates.get(ticker, 0.0)
+                        tax = net_gain * tax_rate
+                    
+                    final_proceeds = sell_value - tax
+                    cash += final_proceeds
+                    
                     trades.append({
                         'Ticker': ticker, 
                         'EntryDate': pos['entry_date'], 
@@ -80,7 +96,10 @@ class BacktestEngine:
                         'EntryPrice': pos['entry_price'], 
                         'ExitPrice': exit_price,
                         'Shares': pos['shares'], 
-                        'Gain': (exit_price / pos['entry_price']) - 1,
+                        'Gain': (final_proceeds / buy_value) - 1,
+                        'NetGainAmt': net_gain - tax,
+                        'Tax': tax,
+                        'Commission': pos['entry_cost'] + exit_cost,
                         'Reason': reason
                     })
                     del positions[ticker]
@@ -101,10 +120,12 @@ class BacktestEngine:
                     entry_price = entry_info.get('entry_price', 0)
                     
                     if shares > 0:
-                        cash -= shares * entry_price
+                        entry_cost = (shares * entry_price) * self.commission_pct
+                        cash -= (shares * entry_price + entry_cost)
                         positions[row['Ticker']] = {
                             'shares': shares, 
                             'entry_price': entry_price,
+                            'entry_cost': entry_cost,
                             'entry_date': date, 
                             'stop_loss': entry_info.get('stop_loss', 0),
                             'initial_stop': entry_info.get('stop_loss', 0)
