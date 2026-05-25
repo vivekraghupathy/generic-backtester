@@ -7,7 +7,7 @@ from datetime import datetime
 from .strategy import BaseStrategy
 
 class BacktestEngine:
-    def __init__(self, data_file, strategy: BaseStrategy, initial_capital=1000000, max_positions=10, debug_tickers=None, summary_file='results_summary.csv', commission_pct=0.0, tax_rates=None):
+    def __init__(self, data_file, strategy: BaseStrategy, initial_capital=1000000, max_positions=10, debug_tickers=None, summary_file='results_summary.csv', commission_pct=0.0, tax_rates=None, default_tax_rate=0.0, rebalance_frequency='daily'):
         self.data_file = data_file
         self.strategy = strategy
         self.initial_capital = initial_capital
@@ -16,6 +16,8 @@ class BacktestEngine:
         self.summary_file = summary_file
         self.commission_pct = commission_pct
         self.tax_rates = tax_rates if tax_rates is not None else {}
+        self.default_tax_rate = default_tax_rate
+        self.rebalance_frequency = rebalance_frequency
 
     def load_data(self):
         start_time = time.time()
@@ -62,50 +64,65 @@ class BacktestEngine:
                 
             day_data = grouped.get_group(date)
             
+            # Determine if we should rebalance today
+            should_rebalance = True
+            if self.rebalance_frequency == 'weekly':
+                # Monday = 0
+                should_rebalance = date.dayofweek == 0
+            elif self.rebalance_frequency == 'monthly':
+                # Check if it's the first trading day of the month or just any specific day
+                # Easiest: date is different month from previous date
+                if i > 0:
+                    prev_date = all_dates[i-1]
+                    should_rebalance = date.month != prev_date.month
+                else:
+                    should_rebalance = True
+
             # 1. Manage Exits
-            for ticker in list(positions.keys()):
-                pos = positions[ticker]
-                row_list = day_data[day_data['Ticker'] == ticker]
-                if row_list.empty: 
-                    continue
-                row = row_list.iloc[0]
-                
-                exit_triggered, exit_price, reason = self.strategy.check_exit(row, pos)
-                
-                if exit_triggered:
-                    gross_proceeds = pos['shares'] * exit_price
-                    exit_cost = gross_proceeds * self.commission_pct
+            if should_rebalance:
+                for ticker in list(positions.keys()):
+                    pos = positions[ticker]
+                    row_list = day_data[day_data['Ticker'] == ticker]
+                    if row_list.empty: 
+                        continue
+                    row = row_list.iloc[0]
                     
-                    # Gain calculation for tax
-                    buy_value = (pos['shares'] * pos['entry_price']) + pos['entry_cost']
-                    sell_value = gross_proceeds - exit_cost
-                    net_gain = sell_value - buy_value
+                    exit_triggered, exit_price, reason = self.strategy.check_exit(row, pos)
                     
-                    tax = 0
-                    if net_gain > 0:
-                        tax_rate = self.tax_rates.get(ticker, 0.0)
-                        tax = net_gain * tax_rate
-                    
-                    final_proceeds = sell_value - tax
-                    cash += final_proceeds
-                    
-                    trades.append({
-                        'Ticker': ticker, 
-                        'EntryDate': pos['entry_date'], 
-                        'ExitDate': date,
-                        'EntryPrice': pos['entry_price'], 
-                        'ExitPrice': exit_price,
-                        'Shares': pos['shares'], 
-                        'Gain': (final_proceeds / buy_value) - 1,
-                        'NetGainAmt': net_gain - tax,
-                        'Tax': tax,
-                        'Commission': pos['entry_cost'] + exit_cost,
-                        'Reason': reason
-                    })
-                    del positions[ticker]
+                    if exit_triggered:
+                        gross_proceeds = pos['shares'] * exit_price
+                        exit_cost = gross_proceeds * self.commission_pct
+                        
+                        # Gain calculation for tax
+                        buy_value = (pos['shares'] * pos['entry_price']) + pos['entry_cost']
+                        sell_value = gross_proceeds - exit_cost
+                        net_gain = sell_value - buy_value
+                        
+                        tax = 0
+                        if net_gain > 0:
+                            tax_rate = self.tax_rates.get(ticker, self.default_tax_rate)
+                            tax = net_gain * tax_rate
+                        
+                        final_proceeds = sell_value - tax
+                        cash += final_proceeds
+                        
+                        trades.append({
+                            'Ticker': ticker, 
+                            'EntryDate': pos['entry_date'], 
+                            'ExitDate': date,
+                            'EntryPrice': pos['entry_price'], 
+                            'ExitPrice': exit_price,
+                            'Shares': pos['shares'], 
+                            'Gain': (final_proceeds / buy_value) - 1,
+                            'NetGainAmt': net_gain - tax,
+                            'Tax': tax,
+                            'Commission': pos['entry_cost'] + exit_cost,
+                            'Reason': reason
+                        })
+                        del positions[ticker]
             
             # 2. Manage Entries
-            if len(positions) < self.max_positions:
+            if should_rebalance and len(positions) < self.max_positions:
                 entries = self.strategy.generate_signals(day_data)
                 # Filter out tickers already in positions
                 entries = entries[~entries['Ticker'].isin(positions.keys())]
